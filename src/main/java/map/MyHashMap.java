@@ -1,39 +1,31 @@
 package map;
 
+import exceptions.GetException;
 import exceptions.PutException;
 
 public class MyHashMap implements MyHashMapInterface {
 
-    private int capacity;
-    private final float loadFactor;
-    private int size = 0;
-    private int hashCode = 0;
-    private Long[][] buckets;
+    private int capacity; //size of the bucket
+    private final float loadFactor; // load factor is 0.5 and can not be changed
+    private int size = 0; //  size of filled buckets
+    private int hashCode;
+    private Long[][] buckets; // storage of data
 
     public MyHashMap(){
         this.capacity = 16;
         this.loadFactor = 0.5f;
+        this.hashCode = 0;
         buckets = new Long[16][2];
     }
 
-    public MyHashMap(int capacity){
-        // TODO: 3/21/2019 capacity < 1
-        this.capacity = capacity;
-        this.loadFactor = 0.5f;
-        buckets = new Long[capacity][2];
-    }
-
-    public MyHashMap(int capacity, float loadFactor) {
-        // TODO: 3/21/2019  capacity < 1 loadfactor <=0
-        this.capacity = capacity;
-        this.loadFactor = loadFactor;
-        buckets = new Long[capacity][2];
-    }
-
+    //implemented algorithm with double hashing
+    // method inserts a key and a value id bucket is null
+    // if keys are the same, method changes old value for a new one
     public long put(int key, long value) throws PutException {
         hashCode = hash(key);
         int position = hashCode % capacity;
 
+        // if bucket is empty
         if (buckets[position][0] == null){
             buckets[position][0] = (long)key;
             buckets[position][1] = value;
@@ -42,25 +34,26 @@ public class MyHashMap implements MyHashMapInterface {
             return value;
         }
 
+        //if bucket is not empty
         if (buckets[position][0] != null){
+
+            // if key in the bucket and given key are the same
             if (buckets[position][0].equals(key)){
                 long oldValue = buckets[position][1];
                 buckets[position][1] = value;
                 size++;
                 rehashCheck();
                 return oldValue;
-            } else {
-                int hashCode2 = hashcode2Result(key);
 
-                if (7 - (key % 7) != 0){
-                    hashCode2 = 7 - (key % 7);
-                } else {
-                    hashCode2 = (key % capacity) + 1;
-                }
+            } else { // if key in the bucket and given key are different
+                int hashCode2 = hashcode2Result(key);
 
                 for (int i = 0; i < capacity; i++) {
                     position = (hashCode + i * hashCode2) % capacity;
 
+                    // if bucket for key is empty
+                    // otherwise if key in the bucket and given key are the same
+                    // put value in a relevant bucket
                     if (buckets[position][0] == null){
                         buckets[position][0] = (long)key;
                         buckets[position][1] = value;
@@ -82,13 +75,20 @@ public class MyHashMap implements MyHashMapInterface {
         throw new PutException("could not put value into the map");
     }
 
-    public long get(int key) throws PutException{
+    // method to find a value
+    public long get(int key) throws GetException{
         hashCode = hash(key);
         int position = hashCode % capacity;
 
+        //check, if there is not such key
+        if (position < 0 || position > size - 1){
+            throw new GetException("wrong key");
+        }
+
+        // returns value of a key
         if (buckets[position][0] == key){
             return buckets[position][1];
-        } else {
+        } else {// search for a key after second hashing
             int hashCode2 = hashcode2Result(key);
 
             for (int i = 0; i < capacity; i++) {
@@ -97,18 +97,21 @@ public class MyHashMap implements MyHashMapInterface {
                     return buckets[position][1];
                 }
             }
-            throw new PutException("could not find the key");
+            throw new GetException("could not find the key");
         }
     }
 
+    // returns amount of the occupied buckets
     public int size() {
         return size;
     }
 
+    // calculates hashcode
     private int hash(int number){
         return number;
     }
 
+    //rehashing if a number of filled buckets divided by capacity, is bigger than load factor
     private void rehashCheck(){
         if (size / capacity > loadFactor) {
             size = 0;
@@ -130,6 +133,7 @@ public class MyHashMap implements MyHashMapInterface {
 
     }
 
+    // second hashing
     private int hashcode2Result(int key){
         if (7 - (key % 7) != 0) {
             return  7 - (key % 7);
